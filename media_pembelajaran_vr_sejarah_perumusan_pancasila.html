@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>VR Edukasi: Sejarah Perumusan Pancasila</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; overflow: hidden; margin: 0; }
+        .hud-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .glow-red { box-shadow: 0 0 15px rgba(220, 38, 38, 0.5); }
+        .glow-gold { box-shadow: 0 0 15px rgba(234, 179, 8, 0.5); }
+    </style>
+</head>
+<body class="bg-black text-white select-none">
+
+    <!-- 2D HUD OVERLAY (Non-VR Control & Subtitles) -->
+    <div id="hud-overlay" class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between p-4">
+        <!-- Top Navigation & Controls -->
+        <div class="flex justify-between items-center w-full pointer-events-auto">
+            <div class="flex items-center space-x-3 hud-panel px-4 py-2 rounded-2xl border border-red-500/30">
+                <div class="w-3 h-3 rounded-full bg-red-600 animate-pulse"></div>
+                <div>
+                    <h1 class="text-sm font-bold tracking-wide text-red-100">VR PANCASILA 1945</h1>
+                    <p id="scene-title-hud" class="text-xs text-amber-400 font-semibold">SCENE 1: Lorong Waktu & Museum</p>
+                </div>
+            </div>
+
+            <!-- Scene Selector Menu & Audio Buttons -->
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleNarration()" id="btn-narration" class="hud-panel hover:bg-slate-800 p-2.5 rounded-xl border border-slate-700 text-xs flex items-center space-x-2 transition">
+                    <span id="narration-icon">🔊</span>
+                    <span id="narration-text" class="hidden sm:inline">Narasi Suara</span>
+                </button>
+                <button onclick="toggleBGM()" id="btn-bgm" class="hud-panel hover:bg-slate-800 p-2.5 rounded-xl border border-slate-700 text-xs flex items-center space-x-2 transition">
+                    <span id="bgm-icon">🎵</span>
+                    <span class="hidden sm:inline">Musik Background</span>
+                </button>
+                <select id="scene-selector" onchange="switchScene(this.value)" class="hud-panel text-xs text-amber-300 font-medium px-3 py-2 rounded-xl border border-amber-500/40 outline-none cursor-pointer">
+                    <option value="scene1">Scene 1: Museum & Timeline</option>
+                    <option value="scene2">Scene 2: Sidang BPUPKI I</option>
+                    <option value="scene3">Scene 3: Panitia Sembilan</option>
+                    <option value="scene4">Scene 4: Pengesahan PPKI</option>
+                    <option value="scene5">Scene 5: Galeri & Kuis VR</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Subtitles Bar -->
+        <div class="flex justify-center w-full mb-2">
+            <div id="subtitle-box" class="hud-panel max-w-2xl px-6 py-3 rounded-2xl text-center border border-slate-700 text-sm sm:text-base text-slate-100 font-medium shadow-2xl transition-all duration-300">
+                Selamat Datang di Media VR Edukasi Perumusan Pancasila. Tatap tombol atau klik objek untuk berinteraksi.
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO ELEMENTS -->
+    <audio id="bgm-audio" loop src="https://upload.wikimedia.org/wikipedia/commons/2/23/Garuda_Pancasila.ogg"></audio>
+
+    <!-- 3D VR SCENE -->
+    <a-scene embedded class="w-full h-full" renderer="antialias: true; colorManagement: true;" cursor="rayOrigin: mouse">
+        <!-- Asset Management System -->
+        <a-assets>
+            <!-- Historical Figures Photos (Wikimedia Commons Public Domain) -->
+            <img id="img-soekarno" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Presiden_Sukarno.jpg/640px-Presiden_Sukarno.jpg" crossorigin="anonymous">
+            <img id="img-hatta" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Mohammad_Hatta_1950.jpg/640px-Mohammad_Hatta_1950.jpg" crossorigin="anonymous">
+            <img id="img-yamin" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Mohammad_Yamin.jpg/640px-Mohammad_Yamin.jpg" crossorigin="anonymous">
+            <img id="img-soepomo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Soepomo.jpg/640px-Soepomo.jpg" crossorigin="anonymous">
+            <img id="img-maramis" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/AA_Maramis.jpg/640px-AA_Maramis.jpg" crossorigin="anonymous">
+            <img id="img-abikoesno" src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Abikoesno_Tjokrosoejoso.jpg/640px-Abikoesno_Tjokrosoejoso.jpg" crossorigin="anonymous">
+            <img id="img-kahar" src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Abdul_Kahar_Muzakir.jpg/640px-Abdul_Kahar_Muzakir.jpg" crossorigin="anonymous">
+            <img id="img-agussalim" src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Agus_Salim_1950.jpg/640px-Agus_Salim_1950.jpg" crossorigin="anonymous">
+            <img id="img-subardjo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Achmad_Soebardjo.jpg/640px-Achmad_Soebardjo.jpg" crossorigin="anonymous">
+            <img id="img-wahidhasjim" src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Wahid_Hasyim.jpg/640px-Wahid_Hasyim.jpg" crossorigin="anonymous">
+            
+            <!-- Document & Emblem Textures -->
+            <img id="img-garuda" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/National_emblem_of_Indonesia_Garuda_Pancasila.svg/640px-National_emblem_of_Indonesia_Garuda_Pancasila.svg.png" crossorigin="anonymous">
+            <img id="img-piagam" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Jakarta_Charter_1945.jpg/640px-Jakarta_Charter_1945.jpg" crossorigin="anonymous">
+            <img id="img-tekspancasila" src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Pancasila_Indonesian_State_Philosophy.png/640px-Pancasila_Indonesian_State_Philosophy.png" crossorigin="anonymous">
+        </a-assets>
+
+        <!-- CAMERA & GAZE POINTER FOR VR CARDBOARD -->
+        <a-entity id="rig" position="0 1.6 0">
+            <a-camera id="camera" look-controls touch-enabled="true">
+                <!-- Gaze Fuse Cursor (Timer Ring for VR Box) -->
+                <a-cursor id="cursor"
+                          animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+                          animation__fusing="property: fusing; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
+                          event-set__mouseenter="_event: mouseenter; color: #EAB308"
+                          event-set__mouseleave="_event: mouseleave; color: #FFF"
+                          fuse="true"
+                          fuse-timeout="1500"
+                          material="color: white; shader: flat"
+                          position="0 0 -1"
+                          geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.025">
+                </a-cursor>
+            </a-camera>
+        </a-entity>
+
+        <!-- LIGHTING -->
+        <a-light type="ambient" color="#FFF" intensity="0.6"></a-light>
+        <a-light type="directional" position="-3 8 5" intensity="0.8" castShadow="true"></a-light>
+
+        <!-- ========================================== -->
+        <!-- SCENE 1: LOBBY / LORONG WAKTU (MUSEUM 3D)  -->
+        <!-- ========================================== -->
+        <a-entity id="scene1" visible="true">
+            <a-entity environment="preset: egypt; skyType: atmosphere; groundColor: #1a0f00; lighting: warm; skyColor: #1e1b4b"></a-entity>
+            
+            <!-- Museum Pillars and Red-White Canopy -->
+            <a-cylinder position="-6 3 -5" radius="0.5" height="6" color="#dc2626"></a-cylinder>
+            <a-cylinder position="6 3 -5" radius="0.5" height="6" color="#dc2626"></a-cylinder>
+            <a-cylinder position="-6 3 5" radius="0.5" height="6" color="#ffffff"></a-cylinder>
+            <a-cylinder position="6 3 5" radius="0.5" height="6" color="#ffffff"></a-cylinder>
+            
+            <!-- Museum Header Banner -->
+            <a-box position="0 5 -5" width="13" height="1.2" depth="0.2" color="#7f1d1d"></a-box>
+            <a-text value="MUSEUM VIRTUAL SEJARAH PANCASILA" position="0 5 -4.8" align="center" width="10" color="#fef08a" font="kelsonsans"></a-text>
+
+            <!-- Giant 1945 Timeline Pedestal -->
+            <a-box position="0 0.5 -4" width="8" height="0.8" depth="2" color="#451a03"></a-box>
+            <a-image src="#img-garuda" position="0 2.8 -3.8" width="1.8" height="2"></a-image>
+
+            <!-- Interactive Welcome & Purpose Panel -->
+            <a-plane position="0 1.8 -3.7" width="5.5" height="1.8" color="#0f172a" material="opacity: 0.9">
+                <a-text value="TUJUAN PEMBELAJARAN" position="0 0.6 0.05" align="center" width="5" color="#f59e0b"></a-text>
+                <a-text value="Melalui petualangan VR ini, Anda akan mempelajari:\n1. Kronologi Sidang BPUPKI I (29 Mei - 1 Juni 1945).\n2. Perumusan Piagam Jakarta oleh Panitia Sembilan.\n3. Pengesahan Pancasila & UUD 1945 oleh PPKI (18 Agt 1945).\n4. Galeri Tokoh & Kuis Interaktif." 
+                        position="-2.4 0.1 0.05" align="left" width="4.2" color="#f8fafc"></a-text>
+            </a-plane>
+
+            <!-- Timeline Markers (Interactive Teleport Cylinders) -->
+            <a-entity position="-3.5 0.2 -1.5" class="clickable" onclick="switchScene('scene2')">
+                <a-cylinder radius="0.6" height="0.3" color="#dc2626" animation="property: position; to: -3.5 0.3 -1.5; dir: alternate; loop: true; dur: 1000"></a-cylinder>
+                <a-text value="BPUPKI I\n29 Mei-1 Jun" position="0 0.8 0" align="center" color="#ffffff" width="4"></a-text>
+            </a-entity>
+
+            <a-entity position="-1.2 0.2 -1.5" class="clickable" onclick="switchScene('scene3')">
+                <a-cylinder radius="0.6" height="0.3" color="#d97706" animation="property: position; to: -1.2 0.3 -1.5; dir: alternate; loop: true; dur: 1100"></a-cylinder>
+                <a-text value="Panitia 9\n22 Juni 1945" position="0 0.8 0" align="center" color="#ffffff" width="4"></a-text>
+            </a-entity>
+
+            <a-entity position="1.2 0.2 -1.5" class="clickable" onclick="switchScene('scene4')">
+                <a-cylinder radius="0.6" height="0.3" color="#2563eb" animation="property: position; to: 1.2 0.3 -1.5; dir: alternate; loop: true; dur: 1200"></a-cylinder>
+                <a-text value="PPKI\n18 Agt 1945" position="0 0.8 0" align="center" color="#ffffff" width="4"></a-text>
+            </a-entity>
+
+            <a-entity position="3.5 0.2 -1.5" class="clickable" onclick="switchScene('scene5')">
+                <a-cylinder radius="0.6" height="0.3" color="#16a34a" animation="property: position; to: 3.5 0.3 -1.5; dir: alternate; loop: true; dur: 1300"></a-cylinder>
+                <a-text value="Galeri & Kuis\nEksplorasi" position="0 0.8 0" align="center" color="#ffffff" width="4"></a-text>
+            </a-entity>
+
+            <!-- Enter Button -->
+            <a-box position="0 1 -1.8" width="2" height="0.5" depth="0.1" color="#dc2626" class="clickable" onclick="switchScene('scene2')">
+                <a-text value="MULAI PETUALANGAN VR" position="0 0 0.06" align="center" width="4.5" color="#ffffff"></a-text>
+            </a-box>
+        </a-entity>
+
+        <!-- ========================================== -->
+        <!-- SCENE 2: SIDANG BPUPKI I (29 MEI-1 JUNI)   -->
+        <!-- ========================================== -->
+        <a-entity id="scene2" visible="false">
+            <a-entity environment="preset: forest; ground: flat; groundColor: #27272a; lighting: warm; skyColor: #451a03"></a-entity>
+            
+            <!-- Hall Walls & Floor -->
+            <a-cylinder position="0 2.5 -2" radius="7" height="5" side="double" color="#78350f" material="wireframe: false; opacity: 0.95"></a-cylinder>
+
+            <!-- Oval Table of Assembly -->
+            <a-torus position="0 0.6 -2" radius="3" radius-tubular="0.2" rotation="90 0 0" color="#451a03"></a-torus>
+            <a-cylinder position="0 0.3 -2" radius="3.2" height="0.1" color="#292524"></a-cylinder>
+
+            <!-- Podium -->
+            <a-box position="0 0.6 -5" width="2" height="1.2" depth="1" color="#78350f"></a-box>
+            <a-text value="GEDUNG CHUO SANGI IN (1945)" position="0 2.2 -4.9" align="center" color="#fef08a" width="6"></a-text>
+
+            <!-- 3D Figures Pedestals & Photo Frames -->
+            <!-- Figure 1: Moh. Yamin (29 Mei 1945) -->
+            <a-entity position="-2.5 0 -3">
+                <a-box position="0 0.6 0" width="0.9" height="1.2" depth="0.9" color="#1e293b"></a-box>
+                <a-image src="#img-yamin" position="0 1.7 0" width="0.8" height="1" class="clickable" onclick="openSpeechModal('yamin')"></a-image>
+                <a-text value="Moh. Yamin\n(29 Mei 1945)" position="0 1.0 0.46" align="center" width="3" color="#fde047"></a-text>
+                <a-ring position="0 0.05 0" rotation="-90 0 0" radius-inner="0.6" radius-outer="0.8" color="#eab308" animation="property: scale; to: 1.1 1.1 1.1; dir: alternate; loop: true; dur: 800"></a-ring>
+            </a-entity>
+
+            <!-- Figure 2: Dr. Soepomo (31 Mei 1945) -->
+            <a-entity position="0 0 -4.2">
+                <a-box position="0 0.6 0" width="0.9" height="1.2" depth="0.9" color="#1e293b"></a-box>
+                <a-image src="#img-soepomo" position="0 1.7 0" width="0.8" height="1" class="clickable" onclick="openSpeechModal('soepomo')"></a-image>
+                <a-text value="Dr. Soepomo\n(31 Mei 1945)" position="0 1.0 0.46" align="center" width="3" color="#fde047"></a-text>
+                <a-ring position="0 0.05 0" rotation="-90 0 0" radius-inner="0.6" radius-outer="0.8" color="#eab308" animation="property: scale; to: 1.1 1.1 1.1; dir: alternate; loop: true; dur: 800"></a-ring>
+            </a-entity>
+
+            <!-- Figure 3: Ir. Soekarno (1 Juni 1945) -->
+            <a-entity position="2.5 0 -3">
+                <a-box position="0 0.6 0" width="0.9" height="1.2" depth="0.9" color="#1e293b"></a-box>
+                <a-image src="#img-soekarno" position="0 1.7 0" width="0.8" height="1" class="clickable" onclick="openSpeechModal('soekarno')"></a-image>
+                <a-text value="Ir. Soekarno\n(1 Juni 1945)" position="0 1.0 0.46" align="center" width="3" color="#fde047"></a-text>
+                <a-ring position="0 0.05 0" rotation="-90 0 0" radius-inner="0.6" radius-outer="0.8" color="#ef4444" animation="property: scale; to: 1.2 1.2 1.2; dir: alternate; loop: true; dur: 600"></a-ring>
+            </a-entity>
+
+            <!-- Interactive Speech Dialog Display Panel -->
+            <a-plane id="modal-speech" position="0 2.2 -2.5" width="4.5" height="2.2" color="#0f172a" material="opacity: 0.95" visible="false">
+                <a-text id="modal-speech-title" value="JUDUL PIDATO" position="0 0.8 0.05" align="center" width="5" color="#f59e0b"></a-text>
+                <a-text id="modal-speech-body" value="Isi uraian pidato..." position="-2 0.1 0.05" align="left" width="3.8" color="#ffffff"></a-text>
+                <a-box position="1.6 -0.8 0.05" width="1" height="0.35" depth="0.05" color="#dc2626" class="clickable" onclick="closeSpeechModal()">
+                    <a-text value="TUTUP [X]" position="0 0 0.03" align="center" width="3" color="#ffffff"></a-text>
+                </a-box>
+            </a-plane>
+
+            <!-- Navigation Button to Scene 3 -->
+            <a-box position="0 0.8 1.5" rotation="0 180 0" width="2.2" height="0.5" depth="0.1" color="#d97706" class="clickable" onclick="switchScene('scene3')">
+                <a-text value="LANJUT: PANITIA 9 ➔" position="0 0 0.06" align="center" width="4" color="#ffffff"></a-text>
+            </a-box>
+        </a-entity>
+
+        <!-- ========================================== -->
+        <!-- SCENE 3: RUANG PANITIA SEMBILAN (22 JUNI)  -->
+        <!-- ========================================== -->
+        <a-entity id="scene3" visible="false">
+            <a-entity environment="preset: arches; groundColor: #1c1917; skyColor: #312e81"></a-entity>
+
+            <!-- Meeting Room Walls -->
+            <a-box position="0 2.5 -5" width="12" height="5" depth="0.2" color="#292524"></a-box>
+            <a-box position="-6 2.5 0" width="0.2" height="5" depth="10" color="#292524"></a-box>
+            <a-box position="6 2.5 0" width="0.2" height="5" depth="10" color="#292524"></a-box>
+
+            <a-text value="RUANG RAPAT PANITIA SEMBILAN (22 JUNI 1945)" position="0 4.2 -4.8" align="center" color="#fef08a" width="7"></a-text>
+
+            <!-- 9 Hero Photo Frames Mounted on Wall -->
+            <!-- Top Row: Soekarno, Hatta, Maramis, Abikoesno, Kahar Muzakir -->
+            <a-image src="#img-soekarno" position="-4 2.8 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="Ir. Soekarno" position="-4 2.1 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <a-image src="#img-hatta" position="-2 2.8 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="Moh. Hatta" position="-2 2.1 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <a-image src="#img-maramis" position="0 2.8 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="A.A. Maramis" position="0 2.1 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <a-image src="#img-abikoesno" position="2 2.8 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="A. Tjokrosoejoso" position="2 2.1 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <a-image src="#img-kahar" position="4 2.8 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="A. Kahar Muzakir" position="4 2.1 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <!-- Bottom Row: Agus Salim, Ahmad Soebardjo, Wahid Hasjim, Moh. Yamin -->
+            <a-image src="#img-agussalim" position="-3 1.0 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="H. Agus Salim" position="-3 0.3 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <a-image src="#img-subardjo" position="-1 1.0 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="Ahmad Soebardjo" position="-1 0.3 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <a-image src="#img-wahidhasjim" position="1 1.0 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="K.H. Wahid Hasjim" position="1 0.3 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <a-image src="#img-yamin" position="3 1.0 -4.8" width="0.9" height="1.1"></a-image>
+            <a-text value="Moh. Yamin" position="3 0.3 -4.8" align="center" width="2.5" color="#ffffff"></a-text>
+
+            <!-- Center Discussion Table & Interactive Document -->
+            <a-box position="0 0.5 -2.2" width="2.5" height="0.8" depth="1.5" color="#451a03"></a-box>
+            <a-image id="doc-piagam" src="#img-piagam" position="0 0.95 -2.2" rotation="-90 0 0" width="1.2" height="1.5" class="clickable" onclick="toggleDocumentZoom()"></a-image>
+            <a-text value="[ KLIK UNTUK EKSPLORASI PIAGAM JAKARTA ]" position="0 1.05 -2.2" rotation="-90 0 0" align="center" width="2.5" color="#fef08a"></a-text>
+
+            <!-- Document Zoom Comparison Modal Panel -->
+            <a-plane id="modal-piagam" position="0 2 -2" width="5" height="2.8" color="#020617" material="opacity: 0.98" visible="false">
+                <a-text value="PERBANDINGAN NASKAH HISTORIS" position="0 1.1 0.05" align="center" width="5" color="#f59e0b"></a-text>
+                
+                <a-plane position="-1.2 0.1 0.05" width="2.2" height="1.6" color="#1e293b">
+                    <a-text value="PIAGAM JAKARTA\n(22 Juni 1945)" position="0 0.6 0.02" align="center" width="3" color="#ef4444"></a-text>
+                    <a-text value="Sila Pertama:\n'Ketuhanan dengan kewajiban\nmenjalankan syariat Islam\nbagi pemeluk-pemeluknya'" position="-0.9 -0.1 0.02" align="left" width="2.5" color="#ffffff"></a-text>
+                </a-plane>
+
+                <a-plane position="1.2 0.1 0.05" width="2.2" height="1.6" color="#1e293b">
+                    <a-text value="UUD 1945 / PANCASILA\n(18 Agustus 1945)" position="0 0.6 0.02" align="center" width="3" color="#22c55e"></a-text>
+                    <a-text value="Sila Pertama:\n'Ketuhanan Yang Maha Esa'\n\n(Disepakati demi menjaga\npersatuan seluruh wilayah\nNusantara Indonesia)" position="-0.9 -0.1 0.02" align="left" width="2.5" color="#ffffff"></a-text>
+                </a-plane>
+
+                <a-box position="0 -1.1 0.05" width="1.5" height="0.35" depth="0.05" color="#dc2626" class="clickable" onclick="toggleDocumentZoom()">
+                    <a-text value="TUTUP DOKUMEN" position="0 0 0.03" align="center" width="3" color="#ffffff"></a-text>
+                </a-box>
+            </a-plane>
+
+            <!-- Navigation Button to Scene 4 -->
+            <a-box position="0 0.8 1.5" rotation="0 180 0" width="2.2" height="0.5" depth="0.1" color="#2563eb" class="clickable" onclick="switchScene('scene4')">
+                <a-text value="LANJUT: SIDANG PPKI ➔" position="0 0 0.06" align="center" width="4" color="#ffffff"></a-text>
+            </a-box>
+        </a-entity>
+
+        <!-- ========================================== -->
+        <!-- SCENE 4: SIDANG PPKI (18 AGUSTUS 1945)     -->
+        <!-- ========================================== -->
+        <a-entity id="scene4" visible="false">
+            <a-entity environment="preset: volcanos; groundColor: #0f172a; lighting: warm; skyColor: #020617"></a-entity>
+
+            <!-- Main Stage Wall -->
+            <a-box position="0 3 -5" width="12" height="6" depth="0.2" color="#1e1b4b"></a-box>
+            <a-image src="#img-garuda" position="0 4.2 -4.8" width="2.2" height="2.5"></a-image>
+            <a-text value="PENGESAHAN PANCASILA & UUD 1945" position="0 2.7 -4.8" align="center" color="#fef08a" width="8"></a-text>
+
+            <!-- Interactive Text Amendment Animation Display -->
+            <a-plane position="0 1.5 -4.7" width="7" height="1.8" color="#090d16" material="opacity: 0.95">
+                <a-text value="ANIMASI PERUBAHAN TULISAN SILA PERTAMA" position="0 0.6 0.05" align="center" width="5.5" color="#38bdf8"></a-text>
+
+                <!-- Initial Text (Strike Through) -->
+                <a-text id="txt-7kata" value="1. Ketuhanan dengan kewajiban menjalankan syariat Islam bagi pemeluk-pemeluknya" 
+                        position="0 0.1 0.05" align="center" width="4" color="#ef4444"></a-text>
+                
+                <!-- Modified Text -->
+                <a-text id="txt-pancasila-fix" value="➔ 1. KETUHANAN YANG MAHA ESA" 
+                        position="0 -0.3 0.05" align="center" width="5" color="#22c55e" visible="false"></a-text>
+            </a-plane>
+
+            <!-- Interactive Trigger Box for Ratification -->
+            <a-box position="0 0.3 -2.5" width="2.8" height="0.5" depth="0.8" color="#16a34a" class="clickable" onclick="triggerPPKIAnimation()">
+                <a-text id="btn-ppki-text" value="KETUK UNTUK SAHKAN PERUBAHAN" position="0 0.26 0" rotation="-90 0 0" align="center" width="3.5" color="#ffffff"></a-text>
+            </a-box>
+
+            <!-- Significance Explanation Panel -->
+            <a-plane position="0 1.8 -1.8" rotation="-20 0 0" width="4" height="1.2" color="#1e293b" material="opacity: 0.9" visible="true">
+                <a-text value="MAKNA SEJARAH PERSATUAN:" position="0 0.4 0.05" align="center" width="4" color="#f59e0b"></a-text>
+                <a-text value="Drs. Moh. Hatta mengusulkan perubahan ini setelah menerima ketidakberatan\ntokoh-tokoh Islam demi menjaga keutuhan Republik Indonesia dari Sabang\nsampai Merauke agar kawasan Indonesia Timur tetap bersatu." 
+                        position="-1.8 0 0.05" align="left" width="3" color="#f8fafc"></a-text>
+            </a-plane>
+
+            <!-- Navigation Button to Scene 5 -->
+            <a-box position="0 0.8 1.5" rotation="0 180 0" width="2.2" height="0.5" depth="0.1" color="#16a34a" class="clickable" onclick="switchScene('scene5')">
+                <a-text value="LANJUT: GALERI & KUIS ➔" position="0 0 0.06" align="center" width="4" color="#ffffff"></a-text>
+            </a-box>
+        </a-entity>
+
+        <!-- ========================================== -->
+        <!-- SCENE 5: GALERI EKSPLORASI & KUIS VR       -->
+        <!-- ========================================== -->
+        <a-entity id="scene5" visible="false">
+            <a-entity environment="preset: starry; groundColor: #020617; skyColor: #090d16"></a-entity>
+
+            <!-- 360 Circular Gallery Arena Structure -->
+            <a-cylinder position="0 2.5 0" radius="8" height="5" side="double" color="#0f172a" material="openEnded: true; opacity: 0.8"></a-cylinder>
+
+            <!-- Complete Pancasila State Text Panel (Front Wall) -->
+            <a-plane position="0 2.8 -7.5" width="6" height="3" color="#1e293b" material="opacity: 0.95">
+                <a-image src="#img-garuda" position="0 1.1 0.05" width="1" height="1.1"></a-image>
+                <a-text value="TEKS PANCASILA LENGKAP" position="0 0.4 0.05" align="center" width="6" color="#fef08a"></a-text>
+                <a-text value="1. Ketuhanan Yang Maha Esa\n2. Kemanusiaan yang adil dan beradab\n3. Persatuan Indonesia\n4. Kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan\n5. Keadilan sosial bagi seluruh rakyat Indonesia" 
+                        position="-2.6 -0.3 0.05" align="left" width="4.8" color="#ffffff"></a-text>
+            </a-plane>
+
+            <!-- VR Interactive Quiz Machine (Center) -->
+            <a-entity position="0 0 -2.5">
+                <!-- Main Quiz Board Panel -->
+                <a-plane position="0 1.8 0" width="4" height="2.5" color="#0f172a" material="opacity: 0.95" border="color: #eab308">
+                    <a-text id="quiz-number" value="SOAL 1 DARI 10" position="0 1.0 0.05" align="center" width="4" color="#f59e0b"></a-text>
+                    <a-text id="quiz-question" value="Siapakah tokoh yang menyampaikan pidato lahirnya Pancasila pada 1 Juni 1945?" position="0 0.5 0.05" align="center" width="3.6" color="#ffffff"></a-text>
+
+                    <!-- Option A -->
+                    <a-box id="opt-a" position="-1.5 -0.1 0.05" width="1.6" height="0.4" depth="0.05" color="#1e293b" class="clickable" onclick="checkAnswer('A')">
+                        <a-text id="txt-opt-a" value="A. Ir. Soekarno" position="0 0 0.03" align="center" width="2.8" color="#ffffff"></a-text>
+                    </a-box>
+
+                    <!-- Option B -->
+                    <a-box id="opt-b" position="0.8 -0.1 0.05" width="1.6" height="0.4" depth="0.05" color="#1e293b" class="clickable" onclick="checkAnswer('B')">
+                        <a-text id="txt-opt-b" value="B. Moh. Yamin" position="0 0 0.03" align="center" width="2.8" color="#ffffff"></a-text>
+                    </a-box>
+
+                    <!-- Option C -->
+                    <a-box id="opt-c" position="-1.5 -0.6 0.05" width="1.6" height="0.4" depth="0.05" color="#1e293b" class="clickable" onclick="checkAnswer('C')">
+                        <a-text id="txt-opt-c" value="C. Dr. Soepomo" position="0 0 0.03" align="center" width="2.8" color="#ffffff"></a-text>
+                    </a-box>
+
+                    <!-- Option D -->
+                    <a-box id="opt-d" position="0.8 -0.6 0.05" width="1.6" height="0.4" depth="0.05" color="#1e293b" class="clickable" onclick="checkAnswer('D')">
+                        <a-text id="txt-opt-d" value="D. Moh. Hatta" position="0 0 0.03" align="center" width="2.8" color="#ffffff"></a-text>
+                    </a-box>
+
+                    <!-- Feedback & Explanation Panel -->
+                    <a-text id="quiz-feedback" value="" position="0 -1.0 0.05" align="center" width="3.6" color="#fde047"></a-text>
+                </a-plane>
+
+                <!-- Next Question Button -->
+                <a-box id="btn-next-quiz" position="0 0.2 0" width="1.8" height="0.35" depth="0.05" color="#2563eb" class="clickable" onclick="nextQuestion()" visible="false">
+                    <a-text value="SOAL SELANJUTNYA ➔" position="0 0 0.03" align="center" width="3" color="#ffffff"></a-text>
+                </a-box>
+            </entity>
+
+            <!-- Gallery Hero Portraits Circle (Left and Right Walls) -->
+            <a-image src="#img-yamin" position="-6 2 -2" rotation="0 60 0" width="1.5" height="2"></a-image>
+            <a-image src="#img-soepomo" position="-6 2 -5" rotation="0 30 0" width="1.5" height="2"></a-image>
+            <a-image src="#img-soekarno" position="6 2 -2" rotation="0 -60 0" width="1.5" height="2"></a-image>
+            <a-image src="#img-hatta" position="6 2 -5" rotation="0 -30 0" width="1.5" height="2"></a-image>
+
+            <!-- Navigation Return to Scene 1 -->
+            <a-box position="0 0.8 2.5" rotation="0 180 0" width="2.5" height="0.5" depth="0.1" color="#dc2626" class="clickable" onclick="switchScene('scene1')">
+                <a-text value="🏠 KEMBALI KE LOBBY" position="0 0 0.06" align="center" width="4" color="#ffffff"></a-text>
+            </a-box>
+        </a-entity>
+
+    </a-scene>
+
+    <script>
+        // ==========================================
+        // APP STATE & DATA MANAGEMENT
+        // ==========================================
+        let currentScene = 'scene1';
+        let isNarrationEnabled = true;
+        let isBGMPlaying = false;
+        let speechSynth = window.speechSynthesis;
+
+        // Narration texts for each Scene
+        const sceneNarrations = {
+            scene1: "Selamat datang di Museum Virtual Sejarah Perumusan Pancasila. Di sini Anda akan menjelajahi kronologi lahirnya dasar negara Indonesia dari BPUPKI, Panitia Sembilan, hingga Pengesahan PPKI.",
+            scene2: "Anda berada di Gedung Chuo Sangi In, tempat berlangsungnya Sidang Pertama BPUPKI dari 29 Mei hingga 1 Juni 1945. Dekati dan ketuk para tokoh untuk mendengarkan pokok pikiran pidato mereka.",
+            scene3: "Ini adalah Ruang Rapat Panitia Sembilan pada 22 Juni 1945. Ketuk dokumen di tengah meja untuk melihat perbandingan Piagam Jakarta dengan naskah Pancasila UUD 1945.",
+            scene4: "Suasana Sidang PPKI 18 Agustus 1945. Ketuk tombol hijau untuk menyaksikan pengesahan perubahan 7 kata sila pertama demi menjaga persatuan bangsa Indonesia.",
+            scene5: "Selamat datang di Galeri Eksplorasi dan Kuis Interaktif. Uji pemahaman Anda dengan menjawab 10 pertanyaan kuis VR berikut!"
+        };
+
+        // Speeches Data for Figures in Scene 2
+        const figureSpeeches = {
+            yamin: {
+                title: "MOHAMMAD YAMIN (29 Mei 1945)",
+                text: "Mohammad Yamin mengusulkan 5 Azas Dasar Negara:\n1. Peri Kebangsaan\n2. Peri Kemanusiaan\n3. Peri Ketuhanan\n4. Peri Kerakyatan\n5. Kesejahteraan Rakyat."
+            },
+            soepomo: {
+                title: "DR. SOEPOMO (31 Mei 1945)",
+                text: "Dr. Soepomo menekankan paham Negara Integralistik (Persatuan):\n1. Persatuan\n2. Kekeluargaan\n3. Keseimbangan Lahir Batin\n4. Musyawarah\n5. Keadilan Rakyat."
+            },
+            soekarno: {
+                title: "IR. SOEKARNO (1 Juni 1945)",
+                text: "Ir. Soekarno menyampaikan 5 Prinsip yang diberi nama 'Pancasila':\n1. Kebangsaan Indonesia\n2. Internasionalisme / Kemanusiaan\n3. Mufakat / Demokrasi\n4. Kesejahteraan Sosial\n5. Ketuhanan yang Berkebudayaan."
+            }
+        };
+
+        // 10 VR Quiz Questions Data
+        const quizData = [
+            {
+                q: "1. Kapan Sidang Pertama BPUPKI dilaksanakan?",
+                a: "A. 29 Mei - 1 Juni 1945", b: "B. 17 - 18 Agustus 1945", c: "C. 22 - 25 Juni 1945", d: "D. 10 - 16 Juli 1945",
+                correct: "A", exp: "Sidang pertama BPUPKI berlangsung pada 29 Mei hingga 1 Juni 1945."
+            },
+            {
+                q: "2. Siapa yang mencetuskan istilah 'Pancasila' pada 1 Juni 1945?",
+                a: "A. Dr. Soepomo", b: "B. Ir. Soekarno", c: "C. Moh. Yamin", d: "D. Moh. Hatta",
+                correct: "B", exp: "Ir. Soekarno berpidato pada 1 Juni 1945 mengusulkan nama Pancasila."
+            },
+            {
+                q: "3. Berapa jumlah anggota Panitia Sembilan?",
+                a: "A. 7 orang", b: "B. 8 orang", c: "C. 9 orang", d: "D. 12 orang",
+                correct: "C", exp: "Sesuai namanya, Panitia Sembilan beranggotakan 9 tokoh nasionalis dan agamis."
+            },
+            {
+                q: "4. Dokumen yang dihasilkan Panitia Sembilan pada 22 Juni 1945 adalah...",
+                a: "A. Teks Proklamasi", b: "B. Sumpah Pemuda", c: "C. Piagam Jakarta", d: "D. Dekrit Presiden",
+                correct: "C", exp: "Panitia Sembilan merumuskan naskah rancangan pembukaan UUD yaitu Piagam Jakarta."
+            },
+            {
+                q: "5. Sila pertama dalam Piagam Jakarta semula berbunyi...",
+                a: "A. Ketuhanan Yang Maha Esa", b: "B. Kebangsaan Indonesia", c: "C. Ketuhanan dengan kewajiban menjalankan syariat Islam...", d: "D. Keadilan Sosial",
+                correct: "C", exp: "Terdapat 7 kata rumusan syariat Islam yang kemudian disempurnakan."
+            },
+            {
+                q: "6. Kapan Pancasila secara resmi disahkan sebagai dasar negara?",
+                a: "A. 1 Juni 1945", b: "B. 17 Agustus 1945", c: "C. 18 Agustus 1945", d: "D. 22 Juni 1945",
+                correct: "C", exp: "PPKI mengesahkan Pancasila dan UUD 1945 pada tanggal 18 Agustus 1945."
+            },
+            {
+                q: "7. Lembaga apa yang menggantikan BPUPKI untuk mempersiapkan kemerdekaan?",
+                a: "A. KNIP", b: "B. PPKI", c: "C. DPR", d: "D. MPR",
+                correct: "B", exp: "PPKI (Dokuritsu Junbi Inkai) dibentuk untuk melanjutkan tugas BPUPKI."
+            },
+            {
+                q: "8. Mengapa 7 kata pada sila pertama Piagam Jakarta diubah?",
+                a: "A. Perintah Jepang", b: "B. Demi menjaga persatuan & kesatuan bangsa", c: "C. Ditolak BPUPKI", d: "D. Lupa dicatat",
+                correct: "B", exp: "Perubahan disepakati demi merangkul seluruh keberagaman wilayah Indonesia Timur."
+            },
+            {
+                q: "9. Tokoh yang berperan penting menjembatani usul perubahan sila pertama adalah...",
+                a: "A. Moh. Hatta", b: "B. Sutan Sjahrir", c: "C. Tan Malaka", d: "D. Radjiman Wedyodiningrat",
+                correct: "A", exp: "Drs. Mohammad Hatta menggalang kesepakatan dengan tokoh-tokoh Islam."
+            },
+            {
+                q: "10. Gedung tempat berlangsungnya Sidang BPUPKI I sekarang dikenal dengan...",
+                a: "A. Gedung Merdeka", b: "B. Gedung Pancasila", c: "C. Istana Negara", d: "D. Gedung Agung",
+                correct: "B", exp: "Gedung Chuo Sangi In di Jakarta kini dinamakan Gedung Pancasila."
+            }
+        ];
+
+        let currentQuizIndex = 0;
+        let score = 0;
+
+        // ==========================================
+        // FUNCTIONS & NAVIGATION LOGIC
+        // ==========================================
+
+        function switchScene(sceneId) {
+            // Hide all scenes
+            ['scene1', 'scene2', 'scene3', 'scene4', 'scene5'].forEach(id => {
+                document.getElementById(id).setAttribute('visible', 'false');
+            });
+
+            // Show selected scene
+            document.getElementById(sceneId).setAttribute('visible', 'true');
+            currentScene = sceneId;
+
+            // Update HUD Title & Selector
+            document.getElementById('scene-selector').value = sceneId;
+            const sceneNames = {
+                scene1: "SCENE 1: Lorong Waktu & Museum",
+                scene2: "SCENE 2: Sidang BPUPKI I",
+                scene3: "SCENE 3: Panitia Sembilan",
+                scene4: "SCENE 4: Pengesahan PPKI",
+                scene5: "SCENE 5: Galeri & Kuis VR"
+            };
+            document.getElementById('scene-title-hud').innerText = sceneNames[sceneId];
+
+            // Speak narration
+            speakText(sceneNarrations[sceneId]);
+        }
+
+        // Speech Synthesis Audio Narration Engine
+        function speakText(text) {
+            document.getElementById('subtitle-box').innerText = text;
+
+            if (!isNarrationEnabled) return;
+            if (speechSynth.speaking) {
+                speechSynth.cancel();
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.95;
+            speechSynth.speak(utterance);
+        }
+
+        function toggleNarration() {
+            isNarrationEnabled = !isNarrationEnabled;
+            const btn = document.getElementById('btn-narration');
+            if (isNarrationEnabled) {
+                btn.classList.remove('bg-red-900/50');
+                document.getElementById('narration-icon').innerText = "🔊";
+                speakText(sceneNarrations[currentScene]);
+            } else {
+                btn.classList.add('bg-red-900/50');
+                document.getElementById('narration-icon').innerText = "🔇";
+                if (speechSynth.speaking) speechSynth.cancel();
+            }
+        }
+
+        function toggleBGM() {
+            const bgm = document.getElementById('bgm-audio');
+            if (isBGMPlaying) {
+                bgm.pause();
+                document.getElementById('bgm-icon').innerText = "🎵";
+            } else {
+                bgm.volume = 0.2;
+                bgm.play().catch(() => console.log("Autoplay blocked by browser. User click needed."));
+                document.getElementById('bgm-icon').innerText = "🎶";
+            }
+            isBGMPlaying = !isBGMPlaying;
+        }
+
+        // Speech Modal Functions for Scene 2
+        function openSpeechModal(figureKey) {
+            const data = figureSpeeches[figureKey];
+            if (!data) return;
+
+            document.getElementById('modal-speech-title').setAttribute('value', data.title);
+            document.getElementById('modal-speech-body').setAttribute('value', data.text);
+            document.getElementById('modal-speech').setAttribute('visible', 'true');
+
+            speakText(data.title + ". " + data.text);
+        }
+
+        function closeSpeechModal() {
+            document.getElementById('modal-speech').setAttribute('visible', 'false');
+        }
+
+        // Document Zoom Functions for Scene 3
+        function toggleDocumentZoom() {
+            const modal = document.getElementById('modal-piagam');
+            const isVis = modal.getAttribute('visible') === 'true';
+            modal.setAttribute('visible', (!isVis).toString());
+
+            if (!isVis) {
+                speakText("Perbandingan Piagam Jakarta dengan Pancasila UUD 1945. Terjadi perubahan pada sila pertama demi keutuhan bangsa.");
+            }
+        }
+
+        // PPKI Ratification Animation Trigger for Scene 4
+        function triggerPPKIAnimation() {
+            const txtFix = document.getElementById('txt-pancasila-fix');
+            txtFix.setAttribute('visible', 'true');
+
+            document.getElementById('btn-ppki-text').setAttribute('value', '✓ BERHASIL DISAHKAN!');
+            
+            // Trigger Confetti Effect
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            speakText("Sila pertama resmi disahkan menjadi Ketuhanan Yang Maha Esa. Keputusan historis ini memperkokoh persatuan Seluruh Rakyat Indonesia.");
+        }
+
+        // ==========================================
+        // VR QUIZ ENGINE LOGIC (SCENE 5)
+        // ==========================================
+
+        function loadQuestion() {
+            const data = quizData[currentQuizIndex];
+            document.getElementById('quiz-number').setAttribute('value', `SOAL ${currentQuizIndex + 1} DARI 10`);
+            document.getElementById('quiz-question').setAttribute('value', data.q);
+
+            document.getElementById('txt-opt-a').setAttribute('value', data.a);
+            document.getElementById('txt-opt-b').setAttribute('value', data.b);
+            document.getElementById('txt-opt-c').setAttribute('value', data.c);
+            document.getElementById('txt-opt-d').setAttribute('value', data.d);
+
+            // Reset Colors
+            ['opt-a', 'opt-b', 'opt-c', 'opt-d'].forEach(id => {
+                document.getElementById(id).setAttribute('color', '#1e293b');
+            });
+
+            document.getElementById('quiz-feedback').setAttribute('value', '');
+            document.getElementById('btn-next-quiz').setAttribute('visible', 'false');
+
+            speakText(data.q);
+        }
+
+        function checkAnswer(selectedOpt) {
+            const data = quizData[currentQuizIndex];
+            const optBoxMap = { 'A': 'opt-a', 'B': 'opt-b', 'C': 'opt-c', 'D': 'opt-d' };
+
+            if (selectedOpt === data.correct) {
+                score += 10;
+                document.getElementById(optBoxMap[selectedOpt]).setAttribute('color', '#16a34a'); // Green
+                document.getElementById('quiz-feedback').setAttribute('value', 'BENAR! 🎉 ' + data.exp);
+
+                // Confetti Animation on correct answer
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+                speakText("Jawaban Anda Benar! " + data.exp);
+            } else {
+                document.getElementById(optBoxMap[selectedOpt]).setAttribute('color', '#dc2626'); // Red
+                document.getElementById(optBoxMap[data.correct]).setAttribute('color', '#16a34a'); // Show correct
+                document.getElementById('quiz-feedback').setAttribute('value', 'KURANG TEPAT! 💡 ' + data.exp);
+                speakText("Jawaban Kurang Tepat. " + data.exp);
+            }
+
+            document.getElementById('btn-next-quiz').setAttribute('visible', 'true');
+        }
+
+        function nextQuestion() {
+            if (currentQuizIndex < quizData.length - 1) {
+                currentQuizIndex++;
+                loadQuestion();
+            } else {
+                // Quiz Finish State
+                document.getElementById('quiz-number').setAttribute('value', 'KUIS SELESAI!');
+                document.getElementById('quiz-question').setAttribute('value', `Skor Akhir Anda: ${score} / 100`);
+                document.getElementById('quiz-feedback').setAttribute('value', score >= 70 ? 'Luar biasa! Anda telah menguasai sejarah perumusan Pancasila!' : 'Tetap semangat! Pelajari kembali tiap scene untuk hasil yang lebih baik.');
+
+                ['opt-a', 'opt-b', 'opt-c', 'opt-d'].forEach(id => {
+                    document.getElementById(id).setAttribute('visible', 'false');
+                });
+
+                document.getElementById('btn-next-quiz').setAttribute('visible', 'false');
+
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+                speakText(`Kuis Selesai! Skor akhir Anda adalah ${score}. Selamat atas pencapaian Anda!`);
+            }
+        }
+
+        // Initialize App on Window Load
+        window.onload = function() {
+            loadQuestion();
+            // Optional autoplay background voice initial welcome
+            setTimeout(() => {
+                speakText(sceneNarrations.scene1);
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
